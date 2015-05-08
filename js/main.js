@@ -264,7 +264,17 @@ jQuery(document).ready(function($) {
 			var temp_max = roundVal(json.main.temp_max);
 
 			var wind = roundVal(json.wind.speed);
-
+			var now = new Date();
+			// var icon_check = json.weather[0].icon;
+			// console.log(icon_check.match(/n/));
+			//console.log(json.weather[0].icon.replace(/n/g, "d"));
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() +(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+						json.weather[0].icon = json.weather[0].icon.replace(/n/g, "d");
+						//console.log(json.weather[0].icon);
+				}
+			}
+			//console.log(json.weather[0].icon);
 			var iconClass = iconTable[json.weather[0].icon];
 			if (json.weather[0].id <505 && json.weather[0].id>501)
 				iconClass = 'wi-umbrella';
@@ -403,9 +413,19 @@ jQuery(document).ready(function($) {
 			var temp = roundVal(json.main.temp);
 			var temp_min = roundVal(json.main.temp_min);
 			var temp_max = roundVal(json.main.temp_max);
-
+			// console.log(json.weather[0].icon);
 			var wind = roundVal(json.wind.speed);
-
+			var now = new Date();
+			// var icon_check = json.weather[0].icon;
+			// console.log(icon_check.match(/n/));
+			//console.log(json.weather[0].icon.replace(/n/g, "d"));
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() +(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+						json.weather[0].icon = json.weather[0].icon.replace(/n/g, "d");
+						//console.log(json.weather[0].icon);
+				}
+			}
+			//console.log(json.weather[0].icon);
 			var iconClass = iconTable[json.weather[0].icon];
 			if (json.weather[0].id <505 && json.weather[0].id>501)
 				iconClass = 'wi-umbrella';
