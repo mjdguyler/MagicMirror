@@ -6,5 +6,6 @@
 							$category = "love";
 						else
 							$category = "life";
+						print $category;
 
 						?>

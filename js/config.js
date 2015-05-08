@@ -12,6 +12,13 @@ var weatherParams = {
     'mode':'JSON'
 };
 
+var weatherParams2 = {
+    'q':'San Diego, US',
+    'units':'imperial',
+    'cnt':'10',
+    'mode':'JSON'
+};
+
 //var feed = 'http://feeds.nos.nl/nosjournaal?format=rss';
 var feed = 'http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/technology/rss.xml';
 //var feed = 'http://www.nu.nl/feeds/rss/achterklap.rss';

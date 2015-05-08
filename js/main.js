@@ -49,6 +49,9 @@ jQuery(document).ready(function($) {
 	var lastCompliment;
 	var compliment;
 
+	var quote = [];
+	var author = [];
+	var format = [];
     moment.lang(lang);
 
 	//connect do Xbee monitor
@@ -255,7 +258,7 @@ jQuery(document).ready(function($) {
 
 
 		$.getJSON('http://api.openweathermap.org/data/2.5/weather', weatherParams, function(json, textStatus) {
-
+			//console.log(json);
 			var temp = roundVal(json.main.temp);
 			var temp_min = roundVal(json.main.temp_min);
 			var temp_max = roundVal(json.main.temp_max);
@@ -365,24 +368,208 @@ jQuery(document).ready(function($) {
 	})();
 
 
-	// (function updateDiv(){
-	// 	$('.qod') = '<?php
-	// 				$min = date('i');
-	// 				if ($min%5==0)
-	// 					$category = "inspire";
-	// 				elseif ($min%2==0)
-	// 					$category = "love";
-	// 				else
-	// 					$category = "life";
 
-	// 				?> '
-	// 	TheySaidSo.render({ qod_category:"<?php print $category ?>"});
 
- // 	setTimeout(function(){
- // 		updateDiv();
- // 	}, 15000);
-	// })();
 
+//San Diego Weather
+	(function updateCurrentWeather2()
+	{
+		var iconTable = {
+			'01d':'wi-day-sunny',
+			'02d':'wi-day-sunny-overcast',
+			'03d':'wi-day-cloudy',
+			'04d':'wi-day-cloudy-windy',
+			'09d':'wi-day-showers',
+			'10d':'wi-day-rain',
+			'11d':'wi-day-thunderstorm',
+			'13d':'wi-day-snow',
+			'50d':'wi-day-fog',
+			'01n':'wi-night-clear',
+			'02n':'wi-night-alt-cloudy',
+			'03n':'wi-night-alt-cloudy',
+			'04n':'wi-night-alt-cloudy',
+			'09n':'wi-night-alt-showers',
+			'10n':'wi-night-alt-rain',
+			'11n':'wi-night-alt-thunderstorm',
+			'13n':'wi-night-alt-snow',
+			'50n':'wi-night-fog'
+		}
+
+
+		$.getJSON('http://api.openweathermap.org/data/2.5/weather', weatherParams2, function(json, textStatus) {
+			//console.log(json);
+			var temp = roundVal(json.main.temp);
+			var temp_min = roundVal(json.main.temp_min);
+			var temp_max = roundVal(json.main.temp_max);
+
+			var wind = roundVal(json.wind.speed);
+
+			var iconClass = iconTable[json.weather[0].icon];
+			if (json.weather[0].id <505 && json.weather[0].id>501)
+				iconClass = 'wi-umbrella';
+			if (json.weather[0].id == 781 || json.weather[0].id == 900)
+				iconClass = 'wi-tornado';
+			if (json.weather[0].id == 902)
+				iconClass = 'wi-hurricane';
+			if (json.weather[0].id == 904)
+				iconClass = 'wi-hot';
+			if (json.weather[0].id == 903)
+				iconClass = 'wi-snowflake-cold';
+			if (json.weather[0].id == 905)
+				iconClass = 'wi-strong-wind';
+
+
+			var icon = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(iconClass);
+			$('.temp2').updateWithText(icon.outerHTML()+temp+'&deg;', 1000);
+
+			// var forecast = 'Min: '+temp_min+'&deg;, Max: '+temp_max+'&deg;';
+			// $('.forecast').updateWithText(forecast, 1000);
+
+			var now = new Date();
+			var sunrise = new Date(json.sys.sunrise*1000).toTimeString().substring(0,5);
+			var sunset = new Date(json.sys.sunset*1000).toTimeString().substring(0,5);
+
+			var windString = '<span class="wi wi-strong-wind xdimmed"></span> ' + mph(wind) + '<span class="light small"> mph </span>' ;
+			var sunString = '<span class="wi wi-sunrise xdimmed"></span> ' + sunrise;
+			if (json.sys.sunrise*1000 < (now) && json.sys.sunset*1000 > (now)) {
+				sunString = '<span class="wi wi-sunset xdimmed"></span> ' + sunset;
+			}
+
+			$('.windsun2').updateWithText(windString+' '+sunString, 1000);
+		});
+
+		setTimeout(function() {
+			updateCurrentWeather2();
+		}, 60000);
+	})();
+
+	(function updateWeatherForecast2()
+	{
+		var iconTable = {
+			'01d':'wi-day-sunny',
+			'02d':'wi-day-cloudy',
+			'03d':'wi-cloudy',
+			'04d':'wi-cloudy-windy',
+			'09d':'wi-showers',
+			'10d':'wi-rain',
+			'11d':'wi-thunderstorm',
+			'13d':'wi-snow',
+			'50d':'wi-fog',
+			'01n':'wi-night-clear',
+			'02n':'wi-night-cloudy',
+			'03n':'wi-night-cloudy',
+			'04n':'wi-night-cloudy',
+			'09n':'wi-night-showers',
+			'10n':'wi-night-rain',
+			'11n':'wi-night-thunderstorm',
+			'13n':'wi-night-snow',
+			'50n':'wi-night-alt-cloudy-windy'
+		}
+			$.getJSON('http://api.openweathermap.org/data/2.5/forecast/daily', weatherParams2, function(json, textStatus) {
+
+			var forecastData2 = {};
+			for (var i in json.list) {
+				var forecast2 = json.list[i];
+				forecastData2[i] = {
+					'timestamp':forecast2.dt * 1000,
+					'icon':forecast2.weather[0].icon,
+					'min':forecast2.temp.min,
+					'max':forecast2.temp.max
+				};
+
+			}
+			var forecastTable2 = $('<table/>').addClass('forecast-table2');
+			var opacity = 1;
+			for (var i in forecastData2) {
+				var forecast2 = forecastData2[i];
+				var iconClass = iconTable[forecast2.icon];
+
+				var dt = new Date(forecast2.timestamp);
+				var row = $('<tr/>').css('opacity', opacity);
+
+				row.append($('<td/>').addClass('day').html(moment.weekdaysShort(dt.getDay())));
+				row.append($('<td/>').addClass('icon-small').addClass('wi').addClass(iconClass));
+				row.append($('<td/>').addClass('temp-max').html(roundVal(forecast2.max)));
+				row.append($('<td/>').addClass('temp-min').html(roundVal(forecast2.min)));
+
+				forecastTable2.append(row);
+				opacity -= 0.155;
+			}
+
+
+			$('.forecast2').updateWithText(forecastTable2, 1000);
+		});
+
+
+		setTimeout(function() {
+			updateWeatherForecast2();
+		}, 60000);
+	})();
+
+
+	(function updateQuote(){
+
+		$.getJSON("http://api.theysaidso.com/qod.json?category=inspire", function(inspire){
+		
+
+		quote[0] = inspire.contents.quote;
+		author[0] = inspire.contents.author;
+		format[0] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+		});
+		$.getJSON("http://api.theysaidso.com/qod.json?category=love", function(love){
+
+		quote[1] = love.contents.quote;
+		author[1] = love.contents.author;
+		format[1] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+		});
+		$.getJSON("http://api.theysaidso.com/qod.json?category=life", function(life){
+
+		quote[2] = life.contents.quote;
+		author[2] = life.contents.author;
+		format[2] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+		});
+		$.getJSON("http://api.theysaidso.com/quote.json", function(random){
+			console.log(random);
+		quote[3] = random.contents.quote;
+		author[3] = random.contents.author;
+		format[3] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+		});
+		$.getJSON("http://api.theysaidso.com/bible/vod.json", function(bible){
+			console.log(bible);
+		quote[4] = bible.contents.quote;
+		author[4] = bible.contents.author;
+		format[4] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+		});
+		$.getJSON("http://api.theysaidso.com/bible/verse.json", function(bible_rand){
+			console.log(bible_rand);
+		quote[5] = bible_rand.contents.quote;
+		author[5] = bible_rand.contents.author;
+		format[5] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+		});
+ 	setTimeout(function(){
+ 		updateQuote();
+ 	}, 3600000);
+	})();
+
+	(function selectQuote(){
+		var date = new Date();
+	    var min = date.getMinutes();
+	    //set compliments to use
+	    if (min % 6 ==0) result = 2;
+	    else if (min % 6 ==2) result = 0;
+	    else if (min % 6 == 3) result = 1;
+	    else if (min % 6 == 1) result = 5;
+	    else if (min % 6 == 4) result = 4;
+	    else result = 3; 
+
+
+		$('.qod1').updateWithText(quote[result], 1000);
+		$('.qod2').updateWithText(author[result], 1000);
+
+	setTimeout(function(){
+ 		selectQuote();
+ 	}, 30000);
+	})();
 
 	// (function fetchNews() {
 	// 	$.feedToJson({
