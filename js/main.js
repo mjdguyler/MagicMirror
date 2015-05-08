@@ -292,8 +292,10 @@ jQuery(document).ready(function($) {
 
 			var windString = '<span class="wi wi-strong-wind xdimmed"></span> ' + mph(wind) + '<span class="light small"> mph </span>' ;
 			var sunString = '<span class="wi wi-sunrise xdimmed"></span> ' + sunrise;
-			if (json.sys.sunrise*1000 < (now) && json.sys.sunset*1000 > (now)) {
-				sunString = '<span class="wi wi-sunset xdimmed"></span> ' + sunset;
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() +(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+					sunString = '<span class="wi wi-sunset xdimmed"></span> ' + sunset;
+				}
 			}
 
 			$('.windsun').updateWithText(windString+' '+sunString, 1000);
@@ -426,13 +428,20 @@ jQuery(document).ready(function($) {
 			// $('.forecast').updateWithText(forecast, 1000);
 
 			var now = new Date();
+			// console.log(now);
+			// console.log(new Date(json.sys.sunrise*1000));
+			// var n = now.getTime() + json.sys.sunrise*1000-json.sys.sunset*1000;
+			// console.log(new Date(n));
 			var sunrise = new Date(json.sys.sunrise*1000).toTimeString().substring(0,5);
 			var sunset = new Date(json.sys.sunset*1000).toTimeString().substring(0,5);
 
 			var windString = '<span class="wi wi-strong-wind xdimmed"></span> ' + mph(wind) + '<span class="light small"> mph </span>' ;
 			var sunString = '<span class="wi wi-sunrise xdimmed"></span> ' + sunrise;
-			if (json.sys.sunrise*1000 < (now) && json.sys.sunset*1000 > (now)) {
-				sunString = '<span class="wi wi-sunset xdimmed"></span> ' + sunset;
+			var sunrise_date = new Date(json.sys.sunrise*1000);
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() +(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+					sunString = '<span class="wi wi-sunset xdimmed"></span> ' + sunset;
+				}
 			}
 
 			$('.windsun2').updateWithText(windString+' '+sunString, 1000);
