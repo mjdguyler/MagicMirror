@@ -1,7 +1,7 @@
 <?php
 	
 	// Set the url of the calendar feed.
-	//$url = 'https://p01-calendarws.icloud.com/ca/subscribe/1/n6x7Farxpt7m9S8bHg1TGArSj7J6kanm_2KEoJPL5YIAk3y70FpRo4GyWwO-6QfHSY5mXtHcRGVxYZUf7U3HPDOTG5x0qYnno1Zr_VuKH2M';
+	$url = 'https://www.google.com/calendar/ical/kslk7h4h15ajonmmqhqhq5jtb8%40group.calendar.google.com/private-c403d530f7360bced77bdc7abadf5655/basic.ics';
 
 	/*****************************************/
 

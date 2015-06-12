@@ -13,9 +13,26 @@ body, html {
 	 -webkit-font-smoothing: antialiased;
 }
 
+/*body {
+	background-image: url("/MagicMirror-master/gifs/flower1.gif");
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	background-position: center;
+}*/
+
+.io3_alerts, .io2_alerts, .io_alerts {
+	width: 250px;
+}
 p, q {
 	margin: 0px;
 	padding: 0px;
+	line-height: 30px;
+}
+
+.map {
+	margin-left: auto;
+	margin-right: auto;
+	width: 1000px;
 }
 
 .wi {
@@ -131,17 +148,21 @@ p, q {
 
 .quote {
 	font-size: 30px;
-	font-family: "HelveticaNeue-Medium";
+	font-family: "HelveticaNeue-Light";
 	letter-spacing: normal;
 	line-height: 30px;
+	padding: 0px;
+	margin: 0px;
 }
 
 .author {
-	font-size: 30px;
+	font-size: 25px;
 	font-family: "HelveticaNeue-Light";
-	letter-spacing: 0px;
+	letter-spacing: -1px;
 	font-style: italic;
 	line-height: 30px;
+	padding: 0px;
+	margin: 0px;
 }
 
 .icon 
@@ -157,7 +178,8 @@ p, q {
 
 .icon-small
 {
-	position: relative;
+	text-align: center;
+	/* position: relative; */
 	display: inline-block;
 	font-size: 20px;
 	padding-left: 10px;
@@ -209,7 +231,7 @@ p, q {
 	margin-top: 10px;
 }
 .calendar-table .days {
-	padding-left: 20px;
+	padding-left: 30px;
 	text-align: right;
 }
 

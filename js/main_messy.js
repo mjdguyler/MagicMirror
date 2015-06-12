@@ -29,7 +29,14 @@ function mph(kmh)
 	var speed = kmh/1000*0.62137*3600;
 	//var speed = kmh/1000/0.621371*3600;
 	return roundVal(speed);
-
+	// var speeds = [1, 5, 11, 19, 28, 38, 49, 61, 74, 88, 102, 117, 1000];
+	// for (var beaufort in speeds) {
+	// 	var speed = speeds[beaufort];
+	// 	if (speed > kmh) {
+	// 		return beaufort;
+	// 	}
+	// }
+	// return 12;
 }
 
 jQuery(document).ready(function($) {
@@ -46,6 +53,18 @@ jQuery(document).ready(function($) {
 	var author = [];
 	var format = [];
     moment.lang(lang);
+
+	//connect do Xbee monitor
+	// var socket = io.connect('http://rpi-alarm.local:8082');
+	// socket.on('dishwasher', function (dishwasherReady) {
+	// 	if (dishwasherReady) {
+	// 		$('.dishwasher').fadeIn(2000);
+	// 		$('.lower-third').fadeOut(2000);
+	// 	} else {
+	// 		$('.dishwasher').fadeOut(2000);
+	// 		$('.lower-third').fadeIn(2000);
+	// 	}
+	// });
 
 
 	(function checkVersion()
@@ -215,31 +234,333 @@ jQuery(document).ready(function($) {
 
 	})();
 
-	
+	(function updateCurrentWeather()
+	{
+		var iconTable = {
+			'01d':'wi-day-sunny',
+			'02d':'wi-day-sunny-overcast',
+			'03d':'wi-day-cloudy',
+			'04d':'wi-day-cloudy-windy',
+			'09d':'wi-day-showers',
+			'10d':'wi-day-rain',
+			'11d':'wi-day-thunderstorm',
+			'13d':'wi-day-snow',
+			'50d':'wi-day-fog',
+			'01n':'wi-night-clear',
+			'02n':'wi-night-alt-cloudy',
+			'03n':'wi-night-alt-cloudy',
+			'04n':'wi-night-alt-cloudy',
+			'09n':'wi-night-alt-showers',
+			'10n':'wi-night-alt-rain',
+			'11n':'wi-night-alt-thunderstorm',
+			'13n':'wi-night-alt-snow',
+			'50n':'wi-night-fog'
+		}
 
+
+		$.getJSON('http://api.openweathermap.org/data/2.5/weather', weatherParams, function(json, textStatus) {
+			console.log(json);
+			var temp = roundVal(json.main.temp);
+			var temp_min = roundVal(json.main.temp_min);
+			var temp_max = roundVal(json.main.temp_max);
+
+			var wind = roundVal(json.wind.speed);
+			var now = new Date();
+			// var icon_check = json.weather[0].icon;
+			// console.log(icon_check.match(/n/));
+			//console.log(json.weather[0].icon.replace(/n/g, "d"));
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() +Math.abs(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+						json.weather[0].icon = json.weather[0].icon.replace(/n/g, "d");
+						//console.log(json.weather[0].icon);
+				}
+			}
+			//console.log(json.weather[0].icon);
+			var iconClass = iconTable[json.weather[0].icon];
+			if (json.weather[0].id <505 && json.weather[0].id>501)
+				iconClass = 'wi-umbrella';
+			if (json.weather[0].id == 781 || json.weather[0].id == 900)
+				iconClass = 'wi-tornado';
+			if (json.weather[0].id == 902)
+				iconClass = 'wi-hurricane';
+			if (json.weather[0].id == 904)
+				iconClass = 'wi-hot';
+			if (json.weather[0].id == 903)
+				iconClass = 'wi-snowflake-cold';
+			if (json.weather[0].id == 905)
+				iconClass = 'wi-strong-wind';
+
+
+			var icon = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(iconClass);
+			$('.temp').updateWithText(icon.outerHTML()+temp+'&deg;', 1000);
+
+			// var forecast = 'Min: '+temp_min+'&deg;, Max: '+temp_max+'&deg;';
+			// $('.forecast').updateWithText(forecast, 1000);
+
+			var now = new Date();
+			var sunrise = new Date(json.sys.sunrise*1000).toTimeString().substring(0,5);
+			var sunset = new Date(json.sys.sunset*1000).toTimeString().substring(0,5);
+
+			var windString = '<span class="wi wi-strong-wind xdimmed"></span> ' + mph(wind) + '<span class="light small"> mph </span>' ;
+			var sunString = '<span class="wi wi-sunrise xdimmed"></span> ' + sunrise;
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() +Math.abs(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+					sunString = '<span class="wi wi-sunset xdimmed"></span> ' + sunset;
+				}
+			}
+
+			$('.windsun').updateWithText(windString+' '+sunString, 1000);
+		});
+
+		setTimeout(function() {
+			updateCurrentWeather();
+		}, 60000);
+	})();
+
+	(function updateWeatherForecast()
+	{
+		var iconTable = {
+			'01d':'wi-day-sunny',
+			'02d':'wi-day-cloudy',
+			'03d':'wi-cloudy',
+			'04d':'wi-cloudy-windy',
+			'09d':'wi-showers',
+			'10d':'wi-rain',
+			'11d':'wi-thunderstorm',
+			'13d':'wi-snow',
+			'50d':'wi-fog',
+			'01n':'wi-night-clear',
+			'02n':'wi-night-cloudy',
+			'03n':'wi-night-cloudy',
+			'04n':'wi-night-cloudy',
+			'09n':'wi-night-showers',
+			'10n':'wi-night-rain',
+			'11n':'wi-night-thunderstorm',
+			'13n':'wi-night-snow',
+			'50n':'wi-night-alt-cloudy-windy'
+		}
+			$.getJSON('http://api.openweathermap.org/data/2.5/forecast/daily', weatherParams, function(json, textStatus) {
+				console.log(json);
+			var forecastData = {};
+			for (var i in json.list) {
+				var forecast = json.list[i];
+				forecastData[i] = {
+					'timestamp':forecast.dt * 1000,
+					'icon':forecast.weather[0].icon,
+					'min':forecast.temp.min,
+					'max':forecast.temp.max
+				};
+
+			}
+			var forecastTable = $('<table/>').addClass('forecast-table');
+			var opacity = 1;
+			for (var i in forecastData) {
+				var forecast = forecastData[i];
+				var iconClass = iconTable[forecast.icon];
+
+				var dt = new Date(forecast.timestamp);
+				var row = $('<tr/>').css('opacity', opacity);
+
+				row.append($('<td/>').addClass('day').html(moment.weekdaysShort(dt.getDay())));
+				row.append($('<td/>').addClass('icon-small').addClass('wi').addClass(iconClass));
+				row.append($('<td/>').addClass('temp-max').html(roundVal(forecast.max)));
+				row.append($('<td/>').addClass('temp-min').html(roundVal(forecast.min)));
+
+				forecastTable.append(row);
+				opacity -= 0.155;
+			}
+
+
+			$('.forecast').updateWithText(forecastTable, 1000);
+		});
+
+
+		setTimeout(function() {
+			updateWeatherForecast();
+		}, 60000);
+	})();
+
+
+
+
+
+//San Diego Weather
+	(function updateCurrentWeather2()
+	{
+		var iconTable = {
+			'01d':'wi-day-sunny',
+			'02d':'wi-day-sunny-overcast',
+			'03d':'wi-day-cloudy',
+			'04d':'wi-day-cloudy-windy',
+			'09d':'wi-day-showers',
+			'10d':'wi-day-rain',
+			'11d':'wi-day-thunderstorm',
+			'13d':'wi-day-snow',
+			'50d':'wi-day-fog',
+			'01n':'wi-night-clear',
+			'02n':'wi-night-alt-cloudy',
+			'03n':'wi-night-alt-cloudy',
+			'04n':'wi-night-alt-cloudy',
+			'09n':'wi-night-alt-showers',
+			'10n':'wi-night-alt-rain',
+			'11n':'wi-night-alt-thunderstorm',
+			'13n':'wi-night-alt-snow',
+			'50n':'wi-night-fog'
+		}
+
+
+		$.getJSON('http://api.openweathermap.org/data/2.5/weather', weatherParams2, function(json, textStatus) {
+			console.log(json);
+			var temp = roundVal(json.main.temp);
+			var temp_min = roundVal(json.main.temp_min);
+			var temp_max = roundVal(json.main.temp_max);
+			// console.log(json.weather[0].icon);
+			var wind = roundVal(json.wind.speed);
+			var now = new Date();
+			// var icon_check = json.weather[0].icon;
+			// console.log(icon_check.match(/n/));
+			//console.log(json.weather[0].icon.replace(/n/g, "d"));
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() +Math.abs(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+						json.weather[0].icon = json.weather[0].icon.replace(/n/g, "d");
+						//console.log(json.weather[0].icon);
+				}
+			}
+			//console.log(json.weather[0].icon);
+			var iconClass = iconTable[json.weather[0].icon];
+			if (json.weather[0].id <505 && json.weather[0].id>501)
+				iconClass = 'wi-umbrella';
+			if (json.weather[0].id == 781 || json.weather[0].id == 900)
+				iconClass = 'wi-tornado';
+			if (json.weather[0].id == 902)
+				iconClass = 'wi-hurricane';
+			if (json.weather[0].id == 904)
+				iconClass = 'wi-hot';
+			if (json.weather[0].id == 903)
+				iconClass = 'wi-snowflake-cold';
+			if (json.weather[0].id == 905)
+				iconClass = 'wi-strong-wind';
+
+
+			var icon = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(iconClass);
+			$('.temp2').updateWithText(icon.outerHTML()+temp+'&deg;', 1000);
+
+			// var forecast = 'Min: '+temp_min+'&deg;, Max: '+temp_max+'&deg;';
+			// $('.forecast').updateWithText(forecast, 1000);
+
+			var now = new Date();
+			// console.log(now);
+			// console.log(new Date(json.sys.sunrise*1000));
+			 var n = now.getTime() + Math.abs(json.sys.sunrise*1000-json.sys.sunset*1000);
+			// console.log(new Date(n));
+			var sunrise = new Date(json.sys.sunrise*1000).toTimeString().substring(0,5);
+			var sunset = new Date(json.sys.sunset*1000).toTimeString().substring(0,5);
+
+			var windString = '<span class="wi wi-strong-wind xdimmed"></span> ' + mph(wind) + '<span class="light small"> mph </span>' ;
+			var sunString = '<span class="wi wi-sunrise xdimmed"></span> ' + sunrise;
+			var sunrise_date = new Date(json.sys.sunrise*1000);
+			if (json.sys.sunrise*1000 < now.getTime() || now.getTime() + Math.abs(json.sys.sunrise-json.sys.sunset)*1000 < json.sys.sunrise*1000){
+				if ((json.sys.sunset*1000) > now.getTime()) {
+					sunString = '<span class="wi wi-sunset xdimmed"></span> ' + sunset;
+				}
+			}
+
+			$('.windsun2').updateWithText(windString+' '+sunString, 1000);
+		});
+
+		setTimeout(function() {
+			updateCurrentWeather2();
+		}, 60000);
+	})();
+
+	(function updateWeatherForecast2()
+	{
+		var iconTable = {
+			'01d':'wi-day-sunny',
+			'02d':'wi-day-cloudy',
+			'03d':'wi-cloudy',
+			'04d':'wi-cloudy-windy',
+			'09d':'wi-showers',
+			'10d':'wi-rain',
+			'11d':'wi-thunderstorm',
+			'13d':'wi-snow',
+			'50d':'wi-fog',
+			'01n':'wi-night-clear',
+			'02n':'wi-night-cloudy',
+			'03n':'wi-night-cloudy',
+			'04n':'wi-night-cloudy',
+			'09n':'wi-night-showers',
+			'10n':'wi-night-rain',
+			'11n':'wi-night-thunderstorm',
+			'13n':'wi-night-snow',
+			'50n':'wi-night-alt-cloudy-windy'
+		}
+			$.getJSON('http://api.openweathermap.org/data/2.5/forecast/daily', weatherParams2, function(json, textStatus) {
+				console.log(json);
+			var forecastData2 = {};
+			for (var i in json.list) {
+				var forecast2 = json.list[i];
+				forecastData2[i] = {
+					'timestamp':forecast2.dt * 1000,
+					'icon':forecast2.weather[0].icon,
+					'min':forecast2.temp.min,
+					'max':forecast2.temp.max
+				};
+
+			}
+			var forecastTable2 = $('<table/>').addClass('forecast-table2');
+			var opacity = 1;
+			for (var i in forecastData2) {
+				var forecast2 = forecastData2[i];
+				var iconClass = iconTable[forecast2.icon];
+
+				var dt = new Date(forecast2.timestamp);
+				var row = $('<tr/>').css('opacity', opacity);
+
+				row.append($('<td/>').addClass('day').html(moment.weekdaysShort(dt.getDay())));
+				row.append($('<td/>').addClass('icon-small').addClass('wi').addClass(iconClass));
+				row.append($('<td/>').addClass('temp-max').html(roundVal(forecast2.max)));
+				row.append($('<td/>').addClass('temp-min').html(roundVal(forecast2.min)));
+
+				forecastTable2.append(row);
+				opacity -= 0.155;
+			}
+
+
+			$('.forecast2').updateWithText(forecastTable2, 1000);
+		});
+
+
+		setTimeout(function() {
+			updateWeatherForecast2();
+		}, 60000);
+	})();
+
+
+
+// Need to do a php proxy like calendar above. pgp 
 (function updateWeatherForecastio()
 	{
 		var iconTable = {
 			'clear-day-day':'wi-day-sunny',
 			'partly-cloudy-day-day':'wi-day-cloudy',
 			'cloudy-day':'wi-cloudy',
-			'sleet-day':'wi-day-sleet',
-			'hail-day':'wi-day-hail',
-			'wind-day':'wi-day-cloudy-gusts',
+			'04d':'wi-cloudy-windy',
+			'09d':'wi-showers',
+			'09d':'wi-rain',
 			'rain-day':'wi-rain',
-			'thunderstorm-day':'wi-thunderstorm',
+			'11d':'wi-thunderstorm',
 			'snow-day':'wi-snow',
 			'fog-day':'wi-fog',
 			'clear-night':'wi-night-clear',
-			'partly-cloudy-night':'wi-night-alt-cloudy',
-			'cloudy':'wi-night-alt-cloudy',
-			'sleet':'wi-night-alt-sleet',
-			'hail':'wi-night-alt-hail',
-			'wind':'wi-night-alt-cloudy-gusts',
-			'rain':'wi-night-alt-rain',
-			'thunderstorm':'wi-night-alt-thunderstorm',
-			'snow':'wi-night-alt-snow',
-			'fog':'wi-night-fog'
+			'partly-cloudy-night':'wi-night-cloudy',
+			'cloudy':'wi-night-cloudy',
+			'04n':'wi-night-cloudy',
+			'09n':'wi-night-showers',
+			'rain':'wi-night-rain',
+			'11n':'wi-night-thunderstorm',
+			'snow':'wi-night-snow',
+			'fog':'wi-night-alt-cloudy-windy'
 		}
 		var moonTable = {
 			'0':'wi-moon-new',
@@ -261,51 +582,63 @@ jQuery(document).ready(function($) {
 			var sunriseTime = json.daily.data[0].sunriseTime;
 			var sunsetTime = json.daily.data[0].sunsetTime;
 			var now = new Date();
+			// var icon_check = json.weather[0].icon;
+			// console.log(icon_check.match(/n/));
+			//console.log(json.weather[0].icon.replace(/n/g, "d"));
 			if (sunriseTime*1000 < now.getTime()){
 				if ((sunsetTime*1000) > now.getTime()) {
-						if (json.currently.icon.includes('night'));
-						else {
-							var str = '-day';
-							json.currently.icon = json.currently.icon.concat(str);
-						}
+						var str = '-day';
+						json.currently.icon = json.currently.icon.concat(str);
 						//console.log(json.weather[0].icon);
 				}
 			}
-			var last = 0;
+
 			for (var k in moonTable){
 				if (k > json.daily.data[0].moonPhase){
-					var x = last;
+					var x = k;
 					break;
 				}
-				last = k;
 			}
 			var moon = moonTable[x];
 			var moonPhase = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(moon);
 			$('.io_moon').updateWithText(moonPhase, 1000);
 			//console.log(json.weather[0].icon);
 			var iconClass = iconTable[json.currently.icon];
-			if(json.currently.temperature > 95)
-				iconClass = 'wi-hot';
 			if (json.currently.icon=='rain-day' && json.currently.precipIntensity < 0.025)
-				iconClass = 'wi-day-showers';
-			else if (json.currently.icon=='rain-day' && json.currently.precipIntensity < 0.07)
-				iconClass = 'wi-day-rain';
+				iconClass = 'wi-showers';
 			else if (json.currently.icon=='rain-day' && json.currently.precipIntensity > 0.3)
 				iconClass = 'wi-umbrella';
 			if (json.currently.icon=='rain' && json.currently.precipIntensity < 0.025)
-				iconClass = 'wi-night-alt-showers';
+				iconClass = 'wi-night-showers';
 			else if (json.currently.icon=='rain' && json.currently.precipIntensity > 0.3)
 				iconClass = 'wi-umbrella';
 			if (json.currently.icon == 'tornado')
 			 	iconClass = 'wi-tornado';
+			// if (json.weather[0].id <505 && json.weather[0].id>501)
+			// 	iconClass = 'wi-umbrella';
+			// if (json.weather[0].id == 781 || json.weather[0].id == 900)
+			// 	iconClass = 'wi-tornado';
+			// if (json.weather[0].id == 902)
+			// 	iconClass = 'wi-hurricane';
+			// if (json.weather[0].id == 904)
+			// 	iconClass = 'wi-hot';
+			// if (json.weather[0].id == 903)
+			// 	iconClass = 'wi-snowflake-cold';
+			// if (json.weather[0].id == 905)
+			// 	iconClass = 'wi-strong-wind';
 
 
 			var icon = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(iconClass);
 			$('.io_temp').updateWithText(icon.outerHTML()+temp+'&deg;', 1000);
 
+			// var forecast = 'Min: '+temp_min+'&deg;, Max: '+temp_max+'&deg;';
+			// $('.forecast').updateWithText(forecast, 1000);
 
 			var now = new Date();
-
+			// console.log(now);
+			// console.log(new Date(json.sys.sunrise*1000));
+			 // var n = now.getTime() + Math.abs(json.sys.sunrise*1000-json.sys.sunset*1000);
+			// console.log(new Date(n));
 			var sunrise = new Date(sunriseTime*1000).toTimeString().substring(0,5);
 			var sunset = new Date(sunsetTime*1000).toTimeString().substring(0,5);
 
@@ -349,18 +682,17 @@ jQuery(document).ready(function($) {
 			var opacity = 1;
 			for (var i in forecastDataio) {
 				var io_forecast = forecastDataio[i];
-				io_forecast.icon = io_forecast.icon.replace(/night/g,"day");
-				var str = '-day';
-				io_forecast.icon = io_forecast.icon.concat(str);
-				
+				// if (sunriseTime*1000 < now.getTime()){
+				// 	if ((sunsetTime*1000) > now.getTime()) {
+						var str = '-day';
+						io_forecast.icon = io_forecast.icon.concat(str);
+						//console.log(json.weather[0].icon);
+				// 	}
+				// }
 				var iconClass = iconTable[io_forecast.icon];
-				if(io_forecast.max > 95)
-					iconClass = 'wi-hot';
 				if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax < 0.03){
-					iconClass = 'wi-day-showers';
+					iconClass = 'wi-showers';
 				}
-				else if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax < 0.07)
-					iconClass = 'wi-day-rain';
 				else if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax > 0.3)
 					iconClass = 'wi-umbrella';
 
@@ -393,23 +725,21 @@ jQuery(document).ready(function($) {
 			'clear-day-day':'wi-day-sunny',
 			'partly-cloudy-day-day':'wi-day-cloudy',
 			'cloudy-day':'wi-cloudy',
-			'sleet-day':'wi-day-sleet',
-			'hail-day':'wi-day-hail',
-			'wind-day':'wi-day-cloudy-gusts',
+			'04d':'wi-cloudy-windy',
+			'09d':'wi-showers',
 			'rain-day':'wi-rain',
-			'thunderstorm-day':'wi-thunderstorm',
+			'11d':'wi-thunderstorm',
 			'snow-day':'wi-snow',
 			'fog-day':'wi-fog',
 			'clear-night':'wi-night-clear',
-			'partly-cloudy-night':'wi-night-alt-cloudy',
-			'cloudy':'wi-night-alt-cloudy',
-			'sleet':'wi-night-alt-sleet',
-			'hail':'wi-night-alt-hail',
-			'wind':'wi-night-alt-cloudy-gusts',
-			'rain':'wi-night-alt-rain',
-			'thunderstorm':'wi-night-alt-thunderstorm',
-			'snow':'wi-night-alt-snow',
-			'fog':'wi-night-fog'
+			'partly-cloudy-night':'wi-night-cloudy',
+			'cloudy':'wi-night-cloudy',
+			'04n':'wi-night-cloudy',
+			'09n':'wi-night-showers',
+			'rain':'wi-night-rain',
+			'11n':'wi-night-thunderstorm',
+			'snow':'wi-night-snow',
+			'fog':'wi-night-alt-cloudy-windy'
 		}
 		var moonTable = {
 			'0':'wi-moon-new',
@@ -432,50 +762,62 @@ jQuery(document).ready(function($) {
 			var sunriseTime = json.daily.data[0].sunriseTime;
 			var sunsetTime = json.daily.data[0].sunsetTime;
 			var now = new Date();
+			// var icon_check = json.weather[0].icon;
+			// console.log(icon_check.match(/n/));
+			//console.log(json.weather[0].icon.replace(/n/g, "d"));
 			if (sunriseTime*1000 < now.getTime()){
 				if ((sunsetTime*1000) > now.getTime()) {
-						if (json.currently.icon.includes('night'));
-						else {
-							var str = '-day';
-							json.currently.icon = json.currently.icon.concat(str);
-						}
+						var str = '-day';
+						json.currently.icon = json.currently.icon.concat(str);
 						//console.log(json.weather[0].icon);
 				}
 			}
-			var last = 0;
 			for (var k in moonTable){
 				if (k > json.daily.data[0].moonPhase){
-					var x = last;
+					var x = k;
 					break;
 				}
-				last = k;
 			}
 			var moon = moonTable[x];
 			var moonPhase = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(moon);
 			$('.io2_moon').updateWithText(moonPhase, 1000);
 			//console.log(json.weather[0].icon);
 			var iconClass = iconTable[json.currently.icon];
-			if(json.currently.temperature > 95)
-				iconClass = 'wi-hot';
 			if (json.currently.icon=='rain-day' && json.currently.precipIntensity < 0.025)
-				iconClass = 'wi-day-showers';
-			else if (json.currently.icon=='rain-day' && json.currently.precipIntensity < 0.07)
-				iconClass = 'wi-day-rain';
+				iconClass = 'wi-showers';
 			else if (json.currently.icon=='rain-day' && json.currently.precipIntensity > 0.3)
 				iconClass = 'wi-umbrella';
 			if (json.currently.icon=='rain' && json.currently.precipIntensity < 0.025)
-				iconClass = 'wi-night-alt-showers';
+				iconClass = 'wi-night-showers';
 			else if (json.currently.icon=='rain' && json.currently.precipIntensity > 0.3)
 				iconClass = 'wi-umbrella';
 			if (json.currently.icon == 'tornado')
 			 	iconClass = 'wi-tornado';
+			// if (json.weather[0].id <505 && json.weather[0].id>501)
+			// 	iconClass = 'wi-umbrella';
+			// if (json.weather[0].id == 781 || json.weather[0].id == 900)
+			// 	iconClass = 'wi-tornado';
+			// if (json.weather[0].id == 902)
+			// 	iconClass = 'wi-hurricane';
+			// if (json.weather[0].id == 904)
+			// 	iconClass = 'wi-hot';
+			// if (json.weather[0].id == 903)
+			// 	iconClass = 'wi-snowflake-cold';
+			// if (json.weather[0].id == 905)
+			// 	iconClass = 'wi-strong-wind';
 
 
 			var icon = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(iconClass);
 			$('.io2_temp').updateWithText(icon.outerHTML()+temp+'&deg;', 1000);
 
+			// var forecast = 'Min: '+temp_min+'&deg;, Max: '+temp_max+'&deg;';
+			// $('.forecast').updateWithText(forecast, 1000);
 
 			var now = new Date();
+			// console.log(now);
+			// console.log(new Date(json.sys.sunrise*1000));
+			 // var n = now.getTime() + Math.abs(json.sys.sunrise*1000-json.sys.sunset*1000);
+			// console.log(new Date(n));
 			var sunrise = new Date(sunriseTime*1000).toTimeString().substring(0,5);
 			var sunset = new Date(sunsetTime*1000).toTimeString().substring(0,5);
 
@@ -518,18 +860,17 @@ jQuery(document).ready(function($) {
 			var opacity = 1;
 			for (var i in forecastDataio) {
 				var io_forecast = forecastDataio[i];
-				io_forecast.icon = io_forecast.icon.replace(/night/g,"day");
-				var str = '-day';
-				io_forecast.icon = io_forecast.icon.concat(str);
-				
+				// if (sunriseTime*1000 < now.getTime()){
+				// 	if ((sunsetTime*1000) > now.getTime()) {
+						var str = '-day';
+						io_forecast.icon = io_forecast.icon.concat(str);
+						//console.log(json.weather[0].icon);
+				// 	}
+				// }
 				var iconClass = iconTable[io_forecast.icon];
-				if(io_forecast.max > 95)
-					iconClass = 'wi-hot';
 				if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax < 0.03){
-					iconClass = 'wi-day-showers';
+					iconClass = 'wi-showers';
 				}
-				else if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax < 0.07)
-					iconClass = 'wi-day-rain';
 				else if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax > 0.3)
 					iconClass = 'wi-umbrella';
 
@@ -560,23 +901,22 @@ jQuery(document).ready(function($) {
 			'clear-day-day':'wi-day-sunny',
 			'partly-cloudy-day-day':'wi-day-cloudy',
 			'cloudy-day':'wi-cloudy',
-			'sleet-day':'wi-day-sleet',
-			'hail-day':'wi-day-hail',
-			'wind-day':'wi-day-cloudy-gusts',
+			'04d':'wi-cloudy-windy',
+			'09d':'wi-showers',
+			'09d':'wi-rain',
 			'rain-day':'wi-rain',
 			'thunderstorm-day':'wi-thunderstorm',
 			'snow-day':'wi-snow',
 			'fog-day':'wi-fog',
 			'clear-night':'wi-night-clear',
-			'partly-cloudy-night':'wi-night-alt-cloudy',
-			'cloudy':'wi-night-alt-cloudy',
-			'sleet':'wi-night-alt-sleet',
-			'hail':'wi-night-alt-hail',
-			'wind':'wi-night-alt-cloudy-gusts',
-			'rain':'wi-night-alt-rain',
-			'thunderstorm':'wi-night-alt-thunderstorm',
-			'snow':'wi-night-alt-snow',
-			'fog':'wi-night-fog'
+			'partly-cloudy-night':'wi-night-cloudy',
+			'cloudy':'wi-night-cloudy',
+			'04n':'wi-night-cloudy',
+			'09n':'wi-night-showers',
+			'rain':'wi-night-rain',
+			'thunderstorm':'wi-night-thunderstorm',
+			'snow':'wi-night-snow',
+			'fog':'wi-night-alt-cloudy-windy'
 		}
 		var moonTable = {
 			'0':'wi-moon-new',
@@ -598,50 +938,59 @@ jQuery(document).ready(function($) {
 			var sunriseTime = json.daily.data[0].sunriseTime;
 			var sunsetTime = json.daily.data[0].sunsetTime;
 			var now = new Date();
+			// var icon_check = json.weather[0].icon;
+			// console.log(icon_check.match(/n/));
+			//console.log(json.weather[0].icon.replace(/n/g, "d"));
 			if (sunriseTime*1000 < json.currently.time*1000){
 				if ((sunsetTime*1000) > json.currently.time*1000) {
-						if (json.currently.icon.includes('night'));
-						else {
-							var str = '-day';
-							json.currently.icon = json.currently.icon.concat(str);
-						}
+						var str = '-day';
+						json.currently.icon = json.currently.icon.concat(str);
 						//console.log(json.weather[0].icon);
 				}
 			}
-			var last =0;
+
 			for (var k in moonTable){
 				if (k > json.daily.data[0].moonPhase){
-					var x = last;
+					var x = k;
 					break;
 				}
-				last = k;
 			}
 			var moon = moonTable[x];
 			var moonPhase = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(moon);
 			$('.io3_moon').updateWithText(moonPhase, 1000);
 			//console.log(json.weather[0].icon);
 			var iconClass = iconTable[json.currently.icon];
-			if(json.currently.temperature > 95)
-				iconClass = 'wi-hot';
 			if (json.currently.icon=='rain-day' && json.currently.precipIntensity < 0.025)
-				iconClass = 'wi-day-showers';
-			else if (json.currently.icon=='rain-day' && json.currently.precipIntensity < 0.07)
-				iconClass = 'wi-day-rain';
+				iconClass = 'wi-showers';
 			else if (json.currently.icon=='rain-day' && json.currently.precipIntensity > 0.3)
 				iconClass = 'wi-umbrella';
 			if (json.currently.icon=='rain' && json.currently.precipIntensity < 0.025)
-				iconClass = 'wi-night-alt-showers';
+				iconClass = 'wi-night-showers';
 			else if (json.currently.icon=='rain' && json.currently.precipIntensity > 0.3)
 				iconClass = 'wi-umbrella';
 			if (json.currently.icon == 'tornado')
 			 	iconClass = 'wi-tornado';
+			// if (json.weather[0].id == 902)
+			// 	iconClass = 'wi-hurricane';
+			// if (json.weather[0].id == 904)
+			// 	iconClass = 'wi-hot';
+			// if (json.weather[0].id == 903)
+			// 	iconClass = 'wi-snowflake-cold';
+			// if (json.weather[0].id == 905)
+			// 	iconClass = 'wi-strong-wind';
 
 
 			var icon = $('<span/>').addClass('icon').addClass('dimmed').addClass('wi').addClass(iconClass);
 			$('.io3_temp').updateWithText(icon.outerHTML()+temp+'&deg;', 1000);
 
+			// var forecast = 'Min: '+temp_min+'&deg;, Max: '+temp_max+'&deg;';
+			// $('.forecast').updateWithText(forecast, 1000);
 
 			var now = new Date();
+			// console.log(now);
+			// console.log(new Date(json.sys.sunrise*1000));
+			 // var n = now.getTime() + Math.abs(json.sys.sunrise*1000-json.sys.sunset*1000);
+			// console.log(new Date(n));
 			var sunrise = new Date(sunriseTime*1000+28800000).toTimeString().substring(0,5);
 			var sunset = new Date(sunsetTime*1000+28800000).toTimeString().substring(0,5);
 
@@ -673,7 +1022,7 @@ jQuery(document).ready(function($) {
 			for (var i in json.daily.data) {
 				var forecast2 = json.daily.data[i];
 				forecastDataio[i] = {
-					'timestamp':forecast2.time * 1000+28800000,
+					'timestamp':forecast2.time * 1000,
 					'icon':forecast2.icon,
 					'min':forecast2.temperatureMin,
 					'max':forecast2.temperatureMax,
@@ -685,18 +1034,17 @@ jQuery(document).ready(function($) {
 			var opacity = 1;
 			for (var i in forecastDataio) {
 				var io_forecast = forecastDataio[i];
-				io_forecast.icon = io_forecast.icon.replace(/night/g,"day");
-				var str = '-day';
-				io_forecast.icon = io_forecast.icon.concat(str);
-				
+				// if (sunriseTime*1000 < json.currently.time*1000){
+				// 	if ((sunsetTime*1000) > json.currently.time*1000) {
+						var str = '-day';
+						io_forecast.icon = io_forecast.icon.concat(str);
+						//console.log(json.weather[0].icon);
+				// 	}
+				// }
 				var iconClass = iconTable[io_forecast.icon];
-				if(io_forecast.max > 95)
-					iconClass = 'wi-hot';
 				if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax < 0.03){
-					iconClass = 'wi-day-showers';
+					iconClass = 'wi-showers';
 				}
-				else if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax < 0.07)
-					iconClass = 'wi-day-rain';
 				else if (io_forecast.icon=='rain-day' && io_forecast.precipIntensityMax > 0.3)
 					iconClass = 'wi-umbrella';
 
@@ -723,160 +1071,49 @@ jQuery(document).ready(function($) {
 	})();
 
 
+	// (function updateQuote(){
 
-	// (function stockChart(){
-	// 	var sym = 'AAPL';
-	// 	var dur = 32;
-	// 	new Markit.InteractiveChartApi(sym, dur);
-
-	// 	setTimeout(function() {
-	// 		stockChart();
-	// 	}, 300000);
-
-	// })();
-
-	// (function map() {
-	//     // Instanciate the map
-	//     $('#container2').highcharts('Map', {
-	//         chart : {
-	//             borderWidth : 1
-	//         },
-
-	//         title : {
-	//             text : 'Countries Visited'
-	//         },
-	//         // subtitle : {
-	//         //     text : ''
-	//         // },
-
-	//         legend: {
-	//             enabled: false
-	//         },
-
-	//         series : [{
-	//             name: 'Country',
-	//             nullColor: "black",
-	//             mapData: Highcharts.maps['custom/world'],
-	//             data: [{
-	//                 code: 'AU',
-	//                 value: 1
-	//             }, {
-	//                 code: 'CA',
-	//                 value: 1
-	//             }, {
-	//                 code: 'CN',
-	//                 value: 1
-	//             }, {
-	//                 code: 'HR',
-	//                 value: 1
-	//             }, {
-	//                 code: 'CZ',
-	//                 value: 1
-	//             }, {
-	//                 code: 'FR',
-	//                 value: 1
-	//             }, {
-	//                 code: 'DE',
-	//                 value: 1
-	//             }, {
-	//                 code: 'GR',
-	//                 value: 1
-	//             }, {
-	//                 code: 'IT',
-	//                 value: 1
-	//             }, {
-	//                 code: 'MX',
-	//                 value: 1
-	//             }, {
-	//                 code: 'NL',
-	//                 value: 1
-	//             }, {
-	//                 code: 'ES',
-	//                 value: 1
-	//             }, {
-	//                 code: 'CH',
-	//                 value: 1
-	//             }, {
-	//                 code: 'TW',
-	//                 value: 1
-	//             }, {
-	//                 code: 'TH',
-	//                 value: 1
-	//             }, {
-	//                 code: 'GB',
-	//                 value: 1
-	//             }, {
-	//                 code: 'US',
-	//                 value: 1
-	//             }],
-	//             joinBy: ['iso-a2', 'code'],
-	//             dataLabels: {
-	//                 enabled: true,
-	//                 //color: 'white',
-	//                 color: '#2b908f', 
-	//                 style: {
-	//                 	fontSize: '20px',
-	//                 	textWeight: 'Bold',
-	//                 	textShadow: "0 0 0 white"
-	//                 	//textShadow: "2px 2px blue"
-	//                 },
-	//                 formatter: function () {
-	//                     if (this.point.value) {
-	//                         return this.point.name;
-	//                     }
-	//                 }
-	//             },
-	//             tooltip: {
-	//                 headerFormat: '',
-	//                 pointFormat: '{point.name}'
-	//             }
-	//         }]
-	//     });
-	// })();
-
-	(function updateQuote(){
-
-		$.getJSON("http://api.theysaidso.com/qod.json?category=inspire", function(inspire){
+	// 	$.getJSON("http://api.theysaidso.com/qod.json?category=inspire", function(inspire){
 		
-			console.log(inspire);
-		quote[0] = inspire.contents.quote;
-		author[0] = "— " + inspire.contents.author;
-		format[0] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
-		});
-		$.getJSON("http://api.theysaidso.com/qod.json?category=love", function(love){
-			console.log(love);
-		quote[1] = love.contents.quote;
-		author[1] = "— " + love.contents.author;
-		format[1] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
-		});
-		$.getJSON("http://api.theysaidso.com/qod.json?category=life", function(life){
-			console.log(life);
-		quote[2] = life.contents.quote;
-		author[2] = "— " + life.contents.author;
-		format[2] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
-		});
-		$.getJSON("http://api.theysaidso.com/qod.json?category=funny", function(funny){
-			console.log(funny);
-		quote[3] = funny.contents.quote;
-		author[3] = "— " + funny.contents.author;
-		format[3] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
-		});
-		$.getJSON("http://api.theysaidso.com/bible/vod.json", function(bible){
-			console.log(bible);
-		quote[4] = bible.contents.verse;
-		author[4] = bible.contents.book + " " + bible.contents.chapter + ":" + bible.contents.number;
-		format[4] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
-		});
-		$.getJSON("http://api.theysaidso.com/bible/verse.json", function(bible_rand){
-			console.log(bible_rand);
-		quote[5] = bible_rand.contents.verse;
-		author[5] = bible_rand.contents.book + " " + bible_rand.contents.chapter + ":" + bible_rand.contents.number;
-		format[5] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
-		});
- 	setTimeout(function(){
- 		updateQuote();
- 	}, 3600000);
-	})();
+	// 		console.log(inspire);
+	// 	quote[0] = inspire.contents.quote;
+	// 	author[0] = "— " + inspire.contents.author;
+	// 	format[0] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+	// 	});
+	// 	$.getJSON("http://api.theysaidso.com/qod.json?category=love", function(love){
+	// 		console.log(love);
+	// 	quote[1] = love.contents.quote;
+	// 	author[1] = "— " + love.contents.author;
+	// 	format[1] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+	// 	});
+	// 	$.getJSON("http://api.theysaidso.com/qod.json?category=life", function(life){
+	// 		console.log(life);
+	// 	quote[2] = life.contents.quote;
+	// 	author[2] = "— " + life.contents.author;
+	// 	format[2] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+	// 	});
+	// 	$.getJSON("http://api.theysaidso.com/qod.json?category=funny", function(funny){
+	// 		console.log(funny);
+	// 	quote[3] = funny.contents.quote;
+	// 	author[3] = "— " + funny.contents.author;
+	// 	format[3] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+	// 	});
+	// 	$.getJSON("http://api.theysaidso.com/bible/vod.json", function(bible){
+	// 		console.log(bible);
+	// 	quote[4] = bible.contents.verse;
+	// 	author[4] = bible.contents.book + " " + bible.contents.chapter + ":" + bible.contents.number;
+	// 	format[4] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+	// 	});
+	// 	$.getJSON("http://api.theysaidso.com/bible/verse.json", function(bible_rand){
+	// 		console.log(bible_rand);
+	// 	quote[5] = bible_rand.contents.verse;
+	// 	author[5] = bible_rand.contents.book + " " + bible_rand.contents.chapter + ":" + bible_rand.contents.number;
+	// 	format[5] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
+	// 	});
+ // 	setTimeout(function(){
+ // 		updateQuote();
+ // 	}, 3600000);
+	// })();
 
 
 	(function selectQuote(){
@@ -898,5 +1135,32 @@ jQuery(document).ready(function($) {
  		selectQuote();
  	}, 30000);
 	})();
+
+	// (function fetchNews() {
+	// 	$.feedToJson({
+	// 		feed: feed,
+	// 		success: function(data){
+	// 			news = [];
+	// 			for (var i in data.item) {
+	// 				var item = data.item[i];
+	// 				news.push(item.title);
+	// 			}
+	// 		}
+	// 	});
+	// 	setTimeout(function() {
+	// 		fetchNews();
+	// 	}, 60000);
+	// })();
+
+	// (function showNews() {
+	// 	var newsItem = news[newsIndex];
+	// 	$('.news').updateWithText(newsItem,2000);
+
+	// 	newsIndex--;
+	// 	if (newsIndex < 0) newsIndex = news.length - 1;
+	// 	setTimeout(function() {
+	// 		showNews();
+	// 	}, 5500);
+	// })();
 
 });
