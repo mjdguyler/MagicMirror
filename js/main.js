@@ -839,26 +839,26 @@ jQuery(document).ready(function($) {
 		$.getJSON("http://api.theysaidso.com/qod.json?category=inspire", function(inspire){
 		
 			console.log(inspire);
-		quote[0] = inspire.contents.quote;
-		author[0] = "— " + inspire.contents.author;
+		quote[0] = inspire.contents.quotes[0].quote;
+		author[0] = "— " + inspire.contents.quotes[0].author;
 		format[0] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
 		});
 		$.getJSON("http://api.theysaidso.com/qod.json?category=love", function(love){
 			console.log(love);
-		quote[1] = love.contents.quote;
-		author[1] = "— " + love.contents.author;
+		quote[1] = love.contents.quotes[0].quote;
+		author[1] = "— " + love.contents.quotes[0].author;
 		format[1] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
 		});
 		$.getJSON("http://api.theysaidso.com/qod.json?category=life", function(life){
 			console.log(life);
-		quote[2] = life.contents.quote;
-		author[2] = "— " + life.contents.author;
+		quote[2] = life.contents.quotes[0].quote;
+		author[2] = "— " + life.contents.quotes[0].author;
 		format[2] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
 		});
 		$.getJSON("http://api.theysaidso.com/qod.json?category=funny", function(funny){
 			console.log(funny);
-		quote[3] = funny.contents.quote;
-		author[3] = "— " + funny.contents.author;
+		quote[3] = funny.contents.quotes[0].quote;
+		author[3] = "— " + funny.contents.quotes[0].author;
 		format[3] = '<q class = "quote">' + quote + '</q>' + ' <span class = "author">' + author + '</span>';
 		});
 		$.getJSON("http://api.theysaidso.com/bible/vod.json", function(bible){
